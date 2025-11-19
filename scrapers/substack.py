@@ -6,6 +6,28 @@ import time
 import random
 
 class SubstackScraper(BaseScraper):
+    def __init__(self, start_url: str, session_cookies: dict = None):
+        """
+        Initialize Substack scraper with optional authentication.
+        
+        Args:
+            start_url: The base URL of the Substack blog
+            session_cookies: Optional dict with 'substack.sid' and 'substack.lli' cookies
+        """
+        super().__init__(start_url)
+        self.session_cookies = session_cookies or {}
+        
+        # Create a requests session to maintain cookies
+        self.session = requests.Session()
+        if self.session_cookies:
+            # Set cookies for authentication
+            for cookie_name, cookie_value in self.session_cookies.items():
+                self.session.cookies.set(cookie_name, cookie_value, domain='.substack.com')
+            print("✓ Using authenticated session for Substack")
+        else:
+            print("ℹ No authentication provided - paywalled content may be truncated")
+    
+
     def get_posts(self) -> Iterator[Dict[str, Any]]:
         offset = 0
         limit = 12
@@ -23,7 +45,8 @@ class SubstackScraper(BaseScraper):
             try:
                 # Add delay
                 time.sleep(random.uniform(1, 3))
-                response = requests.get(base_api_url, params=params)
+                response = self.session.get(base_api_url, params=params)
+
                 
                 if response.status_code == 429:
                     print("Rate limit hit. Sleeping for 30 seconds...")
@@ -60,7 +83,8 @@ class SubstackScraper(BaseScraper):
         while retries > 0:
             try:
                 time.sleep(random.uniform(1, 3))
-                response = requests.get(url)
+                response = self.session.get(url)
+
                 
                 if response.status_code == 429:
                     print(f"Rate limit hit for {url}. Sleeping for 30 seconds...")

@@ -1,6 +1,12 @@
 # Output directory - contains generated PDFs
 output/
 
+# Environment variables - contains sensitive credentials
+.env
+
+# UV lock file
+uv.lock
+
 # Python
 __pycache__/
 *.py[cod]

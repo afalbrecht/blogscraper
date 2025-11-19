@@ -7,6 +7,11 @@ from bs4 import BeautifulSoup
 import os
 import hashlib
 import re
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 
 @click.command()
 @click.option('--url', prompt='Blog URL', help='The URL of the blog to scrape.')
@@ -21,7 +26,19 @@ def main(url, type, image, title, author):
     if type == 'wordpress':
         scraper = WordPressScraper(url)
     else:
-        scraper = SubstackScraper(url)
+        # For Substack, check for authentication credentials in environment
+        session_cookies = {}
+        substack_sid = os.getenv('SUBSTACK_SID')
+        substack_lli = os.getenv('SUBSTACK_LLI')
+        
+        if substack_sid and substack_lli:
+            session_cookies = {
+                'substack.sid': substack_sid,
+                'substack.lli': substack_lli
+            }
+        
+        scraper = SubstackScraper(url, session_cookies=session_cookies)
+
     
     posts = list(scraper.get_posts())
     posts = [p for p in posts if p and p.get('content')] # Filter empty posts and ensure content exists
