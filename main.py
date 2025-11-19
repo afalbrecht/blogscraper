@@ -6,6 +6,7 @@ from pdf_generator.image_optimizer import ImageOptimizer
 from bs4 import BeautifulSoup
 import os
 import hashlib
+import re
 
 @click.command()
 @click.option('--url', prompt='Blog URL', help='The URL of the blog to scrape.')
@@ -33,6 +34,25 @@ def main(url, type, image, title, author):
     
     # Determine blog title if not provided
     blog_title = title if title else (posts[0]['title'] if posts else "Blog Posts")
+    
+    # Determine author for filename
+    pdf_author = author if author else "Unknown"
+    
+    # Sanitize title and author for filename
+    def sanitize_filename(text):
+        # Remove or replace characters that are invalid in filenames
+        text = re.sub(r'[<>:"/\\|?*]', '', text)
+        # Replace spaces with underscores
+        text = text.replace(' ', '_')
+        # Remove multiple underscores
+        text = re.sub(r'_+', '_', text)
+        # Trim underscores from start/end
+        text = text.strip('_')
+        # Limit length to avoid filesystem issues
+        return text[:100]
+    
+    safe_title = sanitize_filename(blog_title)
+    safe_author = sanitize_filename(pdf_author)
     
     # Get first image from any post for frontispiece if available
     front_image = image
@@ -75,7 +95,7 @@ def main(url, type, image, title, author):
         except Exception as e:
             print(f"Failed to optimize front image: {e}")
 
-    images_pdf = os.path.join(output_dir, f"{type}_blog_images.pdf")
+    images_pdf = os.path.join(output_dir, f"{safe_title}_{safe_author}_with_images.pdf")
     generator = PDFGenerator(images_pdf)
     generator.generate(optimized_posts, blog_title, optimized_front_image, author)
     click.echo(f"Generated {images_pdf}")
@@ -99,7 +119,7 @@ def main(url, type, image, title, author):
     # User said "one with images and one without". Usually text-only implies NO images at all.
     # But maybe the cover is okay? Let's assume NO images for strict text-only.
     
-    text_only_pdf = os.path.join(output_dir, f"{type}_blog_text_only.pdf")
+    text_only_pdf = os.path.join(output_dir, f"{safe_title}_{safe_author}_without_images.pdf")
     generator = PDFGenerator(text_only_pdf)
     generator.generate(text_only_posts, blog_title, None, author) # No front image
     click.echo(f"Generated {text_only_pdf}")
