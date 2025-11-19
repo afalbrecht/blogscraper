@@ -1,0 +1,6 @@
+requests
+beautifulsoup4
+weasyprint
+click
+jinja2
+Pillow
